@@ -86,8 +86,9 @@ class Attention(nn.Module):
         # tanh on the value allows us to flip the polarity of the output, helping use the full range
         # Discovered accidentally when I used QRNN_with_tanh_output(sigmoid(vs))
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), self.vs
-        qs, ks, vs = 1,1,1#torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
+        #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
         #qs, ks, vs = self.qs, self.ks, self.vs
+        vs = self.vs
         #vs = torch.tanh(self.vs)
         if self.vq:
             #vs, _ = self.vq(vs)
@@ -105,11 +106,11 @@ class Attention(nn.Module):
         if self.v: value = self.v(value)
         # This essentially scales everything to zero to begin with and then learns from there
         #q, k, v = self.qs * query, self.ks * key, self.vs * value
-        q, k, v = qs * query, ks * key, vs * value
+        # q, k, v = qs * query, ks * key, vs * value
         #q, k, v = query, key, vs * value
         #q, k, v = qs * query, ks * key, value
         #k, v = ks * key, vs * value
-        #q, k, v = query, key, value
+        q, k, v = query, key, value
         if self.drop:
             # We won't apply dropout to v as we can let the caller decide if dropout should be applied to the output
             # Applying dropout to q is equivalent to the same mask on k as they're "zipped"
