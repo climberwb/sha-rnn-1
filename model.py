@@ -86,7 +86,7 @@ class Attention(nn.Module):
         # tanh on the value allows us to flip the polarity of the output, helping use the full range
         # Discovered accidentally when I used QRNN_with_tanh_output(sigmoid(vs))
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), self.vs
-        qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
+        qs, ks, vs = 1,1,1#torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
         #qs, ks, vs = self.qs, self.ks, self.vs
         #vs = torch.tanh(self.vs)
         if self.vq:
