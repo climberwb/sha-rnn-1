@@ -60,7 +60,7 @@ class Attention(nn.Module):
         self.heads = heads
         self.nhid = nhid
         assert nhid % self.heads == 0, 'Heads must divide vector evenly'
-        self.drop = nn.Dropout(dropout) if dropout else None
+        self.drop = nn.Dropout(dropout+0.1) if dropout else None
         self.gelu = GELU()
         self.q = nn.Linear(nhid, nhid) if q else None
         self.qln = LayerNorm(nhid, eps=1e-12)
@@ -88,11 +88,12 @@ class Attention(nn.Module):
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), self.vs
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
         #qs, ks, vs = self.qs, self.ks, self.vs
-        vs = self.vs
+        vs  = torch.sigmoid(self.vs)
+        # vs = self.vs
         #vs = torch.tanh(self.vs)
-        if self.vq:
+        # if self.vq:
             #vs, _ = self.vq(vs)
-            vs = self.vq(vs)
+            # vs = self.vq(vs)
             #qs, ks, vs = [x.reshape((1, 1, -1)) for x in self.vq(torch.sigmoid(self.qkvs))[0, :]]
         elif self.vq_collapsed:
             vs = self.vs
