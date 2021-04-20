@@ -88,15 +88,15 @@ class Attention(nn.Module):
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), self.vs
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
         #qs, ks, vs = self.qs, self.ks, self.vs
-        vs  = torch.sigmoid(self.vs)
+        # vs  = torch.sigmoid(self.vs)
         # vs = self.vs
         #vs = torch.tanh(self.vs)
         # if self.vq:
             #vs, _ = self.vq(vs)
             # vs = self.vq(vs)
             #qs, ks, vs = [x.reshape((1, 1, -1)) for x in self.vq(torch.sigmoid(self.qkvs))[0, :]]
-        elif self.vq_collapsed:
-            vs = self.vs
+        # elif self.vq_collapsed:
+        #     vs = self.vs
         #qs, ks, vs = self.qs, self.ks, self.vs
         #q = qs * query
         #if self.q: query = self.q(query)
