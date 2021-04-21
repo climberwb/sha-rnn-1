@@ -60,7 +60,7 @@ class Attention(nn.Module):
         self.heads = heads
         self.nhid = nhid
         assert nhid % self.heads == 0, 'Heads must divide vector evenly'
-        self.drop = nn.Dropout(dropout+0.1) if dropout else None
+        self.drop = nn.Dropout(dropout) if dropout else None
         self.gelu = GELU()
         self.q = nn.Linear(nhid, nhid) if q else None
         self.qln = LayerNorm(nhid, eps=1e-12)
