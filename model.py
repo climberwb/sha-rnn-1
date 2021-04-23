@@ -53,9 +53,9 @@ class Overparam(nn.Module):
 class Attention(nn.Module):
     def __init__(self, nhid, q=True, k=False, v=False, r=False, heads=1, dropout=None):
         super().__init__()
-        self.qs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
-        self.ks = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
-        self.vs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        # self.qs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        # self.ks = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        # self.vs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
         self.qkvs = nn.Parameter(torch.zeros(size=(1, 3, nhid), dtype=torch.float))
         self.heads = heads
         self.nhid = nhid
@@ -69,7 +69,7 @@ class Attention(nn.Module):
         self.r = nn.Linear(2 * nhid, nhid) if r else None
         self.r_gate = nn.Parameter(torch.ones(size=(1, 1, nhid), dtype=torch.float))
         self.vq = None
-        self.vq = Overparam(nhid)
+        # self.vq = Overparam(nhid)
         #from fastai.text.models import QRNNLayer
         #self.vq = QRNNLayer(input_size=nhid, hidden_size=nhid, save_prev_x=False, zoneout=0, window=1, output_gate=False, batch_first=False)
         self.vq_collapsed = False
