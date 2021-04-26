@@ -305,13 +305,15 @@ class SHARNN(nn.Module):
         if self.causal:
             attn_mask = torch.full((len(x), len(x)), -float('Inf'), device=h.device, dtype=h.dtype)
             attn_mask = torch.triu(attn_mask, diagonal=1)
+            attn_new = torch.full((attn_mask.shape[0]//2+2, attn_mask.shape[0]//2+2), -float("Inf"))
             attn_new = torch.tril(attn_new, diagonal=1)
-            attn_new = attn_new[:-2,2:]
-
-            attn_new = torch.full((attn_mask.shape[0]//2+2, attn_mask.shape[0]//2+2), -float("Inf"))
-            attn_new = torch.full((attn_mask.shape[0]//2+2, attn_mask.shape[0]//2+2), -float("Inf"))
-            attn_mask[(attn_mask.shape[0]//2):,:(attn_mask.shape[0]//2)] = attn_new
-            
+            try:
+              attn_new = attn_new[:-2,2:]
+              attn_mask[(attn_mask.shape[0]//2):,:(attn_mask.shape[0]//2)] = attn_new
+              # print("in")
+            except:
+              attn_mask[(attn_mask.shape[0]//2+1):,:(attn_mask.shape[0]//2)] = attn_new
+              # import pdb; pdb.set_trace()
             if mems:
                 max_mems = max(len(m) for m in mems)
                 happy = torch.zeros((len(x), max_mems), device=h.device, dtype=h.dtype)
