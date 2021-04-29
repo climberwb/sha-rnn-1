@@ -7,12 +7,13 @@ import torch
 import torch.nn as nn
 
 import torch.nn.functional as F
-
+from fastai.text.models.qrnn import QRNN
 # from apex.normalization.fused_layer_norm import FusedLayerNorm as LayerNorm
 from torch.nn import LayerNorm
 import torch.utils
 import torch.utils.checkpoint
 tcheckpoint = torch.utils.checkpoint.checkpoint
+
 #checkpoint = torch.utils.checkpoint.checkpoint
 checkpoint = lambda f, *args, **kwargs: f(*args, **kwargs)
 
@@ -177,7 +178,8 @@ class Block(nn.Module):
 
         self.rnn = None
         if rnn:
-            self.rnn = nn.LSTM(input_size=embed_dim, hidden_size=embed_dim, batch_first=False)
+            self.rnn = QRNN(input_size=embed_dim, hidden_size=embed_dim, n_layers=1, batch_first=False)
+            self.rnn.cuda()
             if rnn not in [True, False]:
                 self.rnn = rnn
 
