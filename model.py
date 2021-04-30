@@ -28,7 +28,7 @@ def attention(query, key, value, attn_mask=None, need_weights=True, dropout=None
     if attn_mask is not None:
         attn_mask = attn_mask.view(1, 1, *attn_mask.shape[-2:])
         attention_scores = attention_scores + attn_mask # Mask is additive and contains -Infs
-
+    
     attention_weights = F.softmax(attention_scores, dim=-1)
     if dropout:
         attention_weights = dropout(attention_weights)
@@ -53,9 +53,9 @@ class Overparam(nn.Module):
 class Attention(nn.Module):
     def __init__(self, nhid, q=True, k=False, v=False, r=False, heads=1, dropout=None):
         super().__init__()
-        # self.qs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
-        # self.ks = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
-        # self.vs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        self.qs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        self.ks = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
+        self.vs = nn.Parameter(torch.zeros(size=(1, 1, nhid), dtype=torch.float))
         self.qkvs = nn.Parameter(torch.zeros(size=(1, 3, nhid), dtype=torch.float))
         self.heads = heads
         self.nhid = nhid
@@ -69,7 +69,7 @@ class Attention(nn.Module):
         self.r = nn.Linear(2 * nhid, nhid) if r else None
         self.r_gate = nn.Parameter(torch.ones(size=(1, 1, nhid), dtype=torch.float))
         self.vq = None
-        # self.vq = Overparam(nhid)
+        self.vq = Overparam(nhid)
         #from fastai.text.models import QRNNLayer
         #self.vq = QRNNLayer(input_size=nhid, hidden_size=nhid, save_prev_x=False, zoneout=0, window=1, output_gate=False, batch_first=False)
         self.vq_collapsed = False
@@ -86,17 +86,15 @@ class Attention(nn.Module):
         # tanh on the value allows us to flip the polarity of the output, helping use the full range
         # Discovered accidentally when I used QRNN_with_tanh_output(sigmoid(vs))
         #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), self.vs
-        #qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
+        qs, ks, vs = torch.sigmoid(self.qs), torch.sigmoid(self.ks), torch.sigmoid(self.vs)
         #qs, ks, vs = self.qs, self.ks, self.vs
-        # vs  = torch.sigmoid(self.vs)
-        # vs = self.vs
         #vs = torch.tanh(self.vs)
-        # if self.vq:
+        if self.vq:
             #vs, _ = self.vq(vs)
-            # vs = self.vq(vs)
+            vs = self.vq(vs)
             #qs, ks, vs = [x.reshape((1, 1, -1)) for x in self.vq(torch.sigmoid(self.qkvs))[0, :]]
-        # elif self.vq_collapsed:
-        #     vs = self.vs
+        elif self.vq_collapsed:
+            vs = self.vs
         #qs, ks, vs = self.qs, self.ks, self.vs
         #q = qs * query
         #if self.q: query = self.q(query)
@@ -107,11 +105,11 @@ class Attention(nn.Module):
         if self.v: value = self.v(value)
         # This essentially scales everything to zero to begin with and then learns from there
         #q, k, v = self.qs * query, self.ks * key, self.vs * value
-        # q, k, v = qs * query, ks * key, vs * value
+        q, k, v = qs * query, ks * key, vs * value
         #q, k, v = query, key, vs * value
         #q, k, v = qs * query, ks * key, value
         #k, v = ks * key, vs * value
-        q, k, v = query, key, value
+        #q, k, v = query, key, value
         if self.drop:
             # We won't apply dropout to v as we can let the caller decide if dropout should be applied to the output
             # Applying dropout to q is equivalent to the same mask on k as they're "zipped"
@@ -175,6 +173,9 @@ class Block(nn.Module):
         self.gelu = GELU()
         self.residual = residual
 
+        self.keyln = LayerNorm(embed_dim, eps=1e-12)
+        self.valln = LayerNorm(embed_dim, eps=1e-12)
+
         self.rnn = None
         if rnn:
             self.rnn = nn.LSTM(input_size=embed_dim, hidden_size=embed_dim, batch_first=False)
@@ -208,13 +209,16 @@ class Block(nn.Module):
             h = self.lnmid(h)
 
             if mem is not None:
-                bigh = torch.cat([mem, mh], dim=0)
+                # bigh = torch.cat([mem, mh], dim=0)
+                bigh_mem = torch.mean(self.keyln(mem),axis=0,keepdims=True)
+                bigh = torch.cat([bigh_mem, mh], dim=0)
+                
+                
             else:
                 bigh = mh
             new_mem = bigh[-len(pe):]
 
-            q, k = h, bigh
-
+            q, k = h, bigh    
             x, focus = checkpoint(self.attn, q, k, bigh, attn_mask)
             #x, focus = tcheckpoint(self.attn, q, k, bigh, attn_mask)
             x = self.drop(x)
@@ -268,7 +272,7 @@ class SHARNN(nn.Module):
             self.decoder.weight = self.encoder.weight
 
         self.apply(self.init_weights)
-
+ 
     def init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Embedding, nn.LayerNorm)):
             module.weight.data.normal_(mean=0.0, std=0.1 / np.sqrt(self.ninp))
@@ -307,7 +311,7 @@ class SHARNN(nn.Module):
             attn_mask = torch.triu(attn_mask, diagonal=1)
             if mems:
                 max_mems = max(len(m) for m in mems)
-                happy = torch.zeros((len(x), max_mems), device=h.device, dtype=h.dtype)
+                happy = torch.zeros((len(x), 1), device=h.device, dtype=h.dtype)
                 attn_mask = torch.cat([happy, attn_mask], dim=-1)
 
         for idx, block in enumerate(self.blocks):
